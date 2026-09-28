@@ -1,74 +1,108 @@
 # DJ Mango 🥭🎵
 
-Bot público de música para Discord com reprodução do **YouTube por link ou busca de texto**, preparado para rodar no Coolify e crescer para muitos servidores com a mesma aplicação/token.
+Bot público de música para Discord com reprodução do YouTube por link ou busca, painel clicável, autoplay inteligente e sharding automático.
 
-## Arquitetura correta para vários servidores
+## Principais recursos
 
-O DJ Mango usa **uma única conta de bot pública**.
-
-Isso significa:
-
-- 1 token do Discord.
-- 1 aplicação no Discord Developer Portal.
-- Nenhum `guild_id` precisa ser cadastrado.
+- Um único bot público para vários servidores.
 - Slash commands globais.
-- Uma fila independente por servidor.
-- Uma conexão de voz independente por servidor.
-- Sharding automático conforme a quantidade de servidores crescer.
+- Fila independente por servidor.
+- Reprodução simultânea em servidores diferentes.
+- Painel clicável dentro do Discord.
+- Autoplay por **mesmo estilo** ou **mesmo artista**.
+- Pré-carregamento da próxima música antes da atual terminar.
+- Cache temporário apagado automaticamente para não ocupar disco.
+- Auto sharding para escalar o bot.
 
-O mesmo DJ Mango pode estar, por exemplo, em:
-
-- Servidor A → tocando na call Geral.
-- Servidor B → tocando na call Música.
-- Servidor C → tocando na call Rust.
-
-Tudo ao mesmo tempo, com filas completamente independentes.
-
-## Limitação do Discord dentro do mesmo servidor
-
-Uma única conta de bot só pode manter **uma conexão de voz por servidor**.
-
-Então, se o DJ Mango já estiver na call `Geral` do Servidor A, ele não consegue ficar simultaneamente também na call `VIP` do mesmo Servidor A usando a mesma identidade.
-
-Isso não impede o bot de tocar simultaneamente em milhares de servidores diferentes.
-
-## Comandos globais
+## Comandos
 
 | Comando | Função |
 | --- | --- |
 | `/play <busca-ou-link>` | Busca no YouTube ou toca um link |
-| `/pause` | Pausa a música atual |
-| `/resume` | Continua a reprodução |
-| `/skip` | Pula a faixa atual |
+| `/pause` | Pausa |
+| `/resume` | Continua |
+| `/skip` | Pula |
 | `/queue` | Mostra a fila |
-| `/nowplaying` | Mostra a música atual |
-| `/volume <0-100>` | Ajusta o volume |
-| `/stop` | Limpa a fila e sai da call |
-| `/status` | Mostra servidores, shards e sessões de voz |
-| `/musichelp` | Mostra os comandos |
+| `/nowplaying` | Música atual |
+| `/volume <0-100>` | Ajusta volume |
+| `/stop` | Limpa fila e sai |
+| `/panel` | Abre o painel clicável |
+| `/status` | Mostra status global |
+| `/musichelp` | Ajuda |
 
-Os comandos são sincronizados globalmente e ficam disponíveis em todos os servidores que adicionarem o bot.
+## Painel
 
-## Exemplos
+O painel aparece automaticamente quando começa a reprodução e também pode ser aberto com:
 
 ```text
-/play Linkin Park Numb
-/play Evidências Chitãozinho e Xororó
-/play https://www.youtube.com/watch?v=...
+/panel
+```
+
+Ele possui controles para:
+
+- pausar/continuar;
+- pular;
+- parar;
+- embaralhar;
+- volume -10/+10;
+- autoplay desligado;
+- autoplay **Mesmo estilo**;
+- autoplay **Mesmo artista**.
+
+A fila mostra um ⚡ quando a próxima música já foi pré-carregada.
+
+## Autoplay e pré-carregamento
+
+Quando o autoplay está ligado e a música atual está chegando ao fim, o DJ Mango tenta preparar a próxima antes da faixa terminar.
+
+O modo **Mesmo estilo** usa recomendações relacionadas à música atual. O modo **Mesmo artista** prioriza músicas do mesmo canal/artista.
+
+Por padrão, o pré-carregamento começa aproximadamente **35 segundos antes do fim**:
+
+```env
+AUTOPLAY_PREFETCH_SECONDS=35
+```
+
+Se já houver uma música manualmente adicionada à fila, ela tem prioridade sobre o autoplay e também pode ser pré-carregada.
+
+## Cache e espaço em disco
+
+As músicas pré-carregadas ficam temporariamente em:
+
+```text
+/tmp/dj-mango-cache
+```
+
+O comportamento é:
+
+1. a próxima música é baixada temporariamente;
+2. ela toca pelo arquivo local quando chegar a vez;
+3. assim que termina, o arquivo é apagado;
+4. ao usar `/stop`, o cache daquele servidor é apagado;
+5. ao reiniciar o bot, qualquer sobra antiga do cache é limpa.
+
+Isso evita acumular músicas no armazenamento do dedicado.
+
+O caminho pode ser alterado:
+
+```env
+MUSIC_CACHE_DIR=/tmp/dj-mango-cache
 ```
 
 ## Deploy no Coolify
 
-Use o repositório diretamente no Coolify e selecione o **Dockerfile** como método de build.
+Use o Dockerfile do repositório.
 
-Este bot é um processo persistente e **não precisa expor porta HTTP nem usar domínio**.
+O bot não precisa de domínio ou porta HTTP.
 
-Cadastre somente as variáveis necessárias:
+Variáveis recomendadas:
 
 ```env
 DISCORD_TOKEN=SEU_TOKEN
 DEFAULT_VOLUME=50
 IDLE_TIMEOUT=120
+AUTOPLAY_PREFETCH_SECONDS=35
+MUSIC_CACHE_DIR=/tmp/dj-mango-cache
 LOG_LEVEL=INFO
 ```
 
@@ -78,59 +112,22 @@ Opcionalmente:
 YTDLP_COOKIES_FILE=/caminho/para/cookies.txt
 ```
 
-Depois faça o deploy.
-
-Nos logs você deve ver algo parecido com:
-
-```text
-DJ Mango online como DJ Mango (...) | guilds=3 | shards=1
-```
-
-Conforme o bot crescer, o `AutoShardedBot` distribui os servidores entre shards do Gateway.
-
-## Bot público
-
-No Discord Developer Portal:
-
-1. Abra a aplicação do DJ Mango.
-2. Configure o bot como público.
-3. Em OAuth2 / Installation, habilite instalação em servidores.
-4. Inclua os escopos de bot e comandos da aplicação.
-5. Garanta as permissões:
-   - Ver Canal
-   - Conectar
-   - Falar
-   - Enviar Mensagens
-   - Inserir Links
-
-O mesmo link de instalação serve para todos os servidores. Você não precisa cadastrar IDs de servidores manualmente.
-
-## Requisitos
-
-- Python 3.12+
-- FFmpeg
-- Deno 2.3+ recomendado pelo yt-dlp
-- `discord.py[voice]`
-- `yt-dlp[default]`
-
-## YouTube
-
-O projeto usa `yt-dlp` para pesquisar no YouTube e resolver os streams de áudio. O stream é obtido novamente quando cada música começa para evitar URLs temporárias expiradas.
-
-Alguns vídeos podem exigir autenticação. Nesse caso, configure `YTDLP_COOKIES_FILE` com cookies em formato Netscape.
+Depois faça redeploy.
 
 ## Escala
 
-Para poucos ou muitos servidores, continua sendo a mesma aplicação/token.
+O DJ Mango usa `commands.AutoShardedBot`. A mesma aplicação/token atende todos os servidores.
 
-Quando o bot crescer bastante, o Discord exige sharding. O código já usa `commands.AutoShardedBot`, então a base já está preparada para isso.
+Cada servidor mantém sua própria fila e conexão de voz.
+
+A limitação do Discord continua sendo uma conexão de voz por conta de bot dentro do mesmo servidor.
 
 ## Segurança
 
 Nunca envie para o GitHub:
 
 - token do Discord;
-- arquivo `.env`;
+- `.env`;
 - cookies do YouTube.
 
-Se um token vazar, regenere-o no Discord Developer Portal.
+Se o token vazar, regenere-o no Discord Developer Portal.
