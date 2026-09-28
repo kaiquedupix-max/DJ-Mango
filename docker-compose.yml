@@ -1,0 +1,7 @@
+services:
+  dj-mango:
+    build: .
+    container_name: dj-mango
+    restart: unless-stopped
+    env_file:
+      - .env
