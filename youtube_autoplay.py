@@ -11,6 +11,8 @@ from typing import Optional
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
+from ytdlp_config import youtube_cookie_file
+
 logger = logging.getLogger("dj-mango.autoplay")
 
 URL_RE = re.compile(r"^https?://", re.IGNORECASE)
@@ -30,7 +32,7 @@ def _ydl_options(*, playlist: bool = False, flat: bool = False) -> dict:
     if flat:
         options["extract_flat"] = "in_playlist"
 
-    cookies = os.getenv("YTDLP_COOKIES_FILE", "").strip()
+    cookies = youtube_cookie_file()
     if cookies:
         options["cookiefile"] = cookies
 
