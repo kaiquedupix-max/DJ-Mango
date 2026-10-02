@@ -11,7 +11,7 @@ from typing import Optional
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
-from ytdlp_config import youtube_cookie_file
+from ytdlp_config import music_backend, youtube_cookie_file
 
 logger = logging.getLogger("dj-mango.autoplay")
 
@@ -46,7 +46,7 @@ def _entry_url(entry: dict) -> Optional[str]:
     if isinstance(url, str) and URL_RE.match(url):
         return url
 
-    if video_id:
+    if video_id and music_backend() == "youtube":
         return f"https://www.youtube.com/watch?v={video_id}"
 
     return None
@@ -90,7 +90,9 @@ def recommend_track_sync(
 ) -> Optional[dict]:
     targets: list[tuple[str, bool]] = []
 
-    if mode == "similar" and video_id:
+    # YouTube radio URLs only make sense when YouTube is the selected backend.
+    # On SoundCloud we use a normal semantic-style search instead.
+    if mode == "similar" and video_id and music_backend() == "youtube":
         targets.append(
             (
                 f"https://www.youtube.com/watch?v={video_id}"
@@ -158,7 +160,7 @@ def download_audio_sync(webpage_url: str, guild_id: int) -> dict:
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(webpage_url, download=True)
             if not info:
-                raise RuntimeError("O YouTube não retornou dados para o download.")
+                raise RuntimeError("A fonte de áudio não retornou dados para o download.")
 
             requested = info.get("requested_downloads") or []
             filepath = requested[0].get("filepath") if requested else None
