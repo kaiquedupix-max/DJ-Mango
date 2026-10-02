@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
+from ytdlp_config import youtube_cookie_file
 from youtube_autoplay import (
     cleanup_guild_cache,
     cleanup_stale_cache,
@@ -63,7 +64,7 @@ def ydl_options() -> dict:
         "source_address": "0.0.0.0",
     }
 
-    cookies = os.getenv("YTDLP_COOKIES_FILE", "").strip()
+    cookies = youtube_cookie_file()
     if cookies:
         options["cookiefile"] = cookies
 
